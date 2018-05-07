@@ -1,4 +1,5 @@
 #include <logger.h>
+#include <set>
 
 #include "corenetwork.h"
 #include "identserver.h"
@@ -70,17 +71,19 @@ void IdentServer::incomingConnection() {
 }
 
 void IdentServer::respond() {
-    auto *socket = qobject_cast<QTcpSocket *>(sender());
+    QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
     Q_ASSERT(socket);
 
-    if (socket->canReadLine()) {
-        QByteArray s = socket->readLine();
-        if (s.endsWith("\r\n"))
-            s.chop(2);
-        else if (s.endsWith("\n"))
-            s.chop(1);
+    int64_t transactionId = _socketId;
 
-        QList<QByteArray> split = s.split(',');
+    if (socket->canReadLine()) {
+        QByteArray query = socket->readLine();
+        if (query.endsWith("\r\n"))
+            query.chop(2);
+        else if (query.endsWith("\n"))
+            query.chop(1);
+
+        QList<QByteArray> split = query.split(',');
 
         bool success = false;
 
@@ -100,16 +103,45 @@ void IdentServer::respond() {
 
         QString data;
         if (success) {
-            data += s + " : USERID : Quassel : " + user + "\r\n";
-        } else {
-            data += s + " : ERROR : NO-USER\r\n";
-        }
+            data += query + " : USERID : Quassel : " + user + "\r\n";
 
-        socket->write(data.toUtf8());
-        socket->flush();
-        socket->close();
-        socket->deleteLater();
+            socket->write(data.toUtf8());
+            socket->flush();
+            socket->close();
+            socket->deleteLater();
+        } else {
+            Request request{socket, localPort, query, transactionId, _requestId++};
+            if (hasSocketsBelowId(transactionId)) {
+                _requestQueue.emplace_back(request);
+            } else {
+                responseUnavailable(request);
+            }
+        }
     }
+}
+
+bool IdentServer::responseAvailable(Request request) {
+    QString user;
+    bool success = true;
+    if (_connections.contains(request.localPort)) {
+        user = _connections[request.localPort];
+    } else {
+        success = false;
+    }
+
+    QString data;
+    if (success) {
+        data += request.query + " : USERID : Quassel : " + user + "\r\n";
+
+        request.socket->write(data.toUtf8());
+    }
+    return success;
+}
+
+void IdentServer::responseUnavailable(Request request) {
+    QString data = request.query + " : ERROR : NO-USER\r\n";
+
+    request.socket->write(data.toUtf8());
 }
 
 QString IdentServer::sysIdentForIdentity(const CoreIdentity *identity) const {
@@ -122,25 +154,66 @@ QString IdentServer::sysIdentForIdentity(const CoreIdentity *identity) const {
 
 
 bool IdentServer::addSocket(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort,
-                            const QHostAddress &peerAddress, quint16 peerPort) {
+                            const QHostAddress &peerAddress, quint16 peerPort, int64_t socketId) {
     Q_UNUSED(localAddress)
     Q_UNUSED(peerAddress)
     Q_UNUSED(peerPort)
 
     const QString ident = sysIdentForIdentity(identity);
     _connections[localPort] = ident;
+    processWaiting(socketId);
     return true;
 }
 
 
-//! not yet implemented
 bool IdentServer::removeSocket(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort,
-                               const QHostAddress &peerAddress, quint16 peerPort) {
+                               const QHostAddress &peerAddress, quint16 peerPort, int64_t socketId) {
     Q_UNUSED(identity)
     Q_UNUSED(localAddress)
     Q_UNUSED(peerAddress)
     Q_UNUSED(peerPort)
 
     _connections.remove(localPort);
+    processWaiting(socketId);
     return true;
+}
+
+int64_t IdentServer::addWaitingSocket() {
+    int64_t newSocketId = _socketId++;
+    _waiting.push_back(newSocketId);
+    return newSocketId;
+}
+
+bool IdentServer::hasSocketsBelowId(int64_t id) {
+    return std::any_of(_waiting.begin(), _waiting.end(), [=](int64_t socketId) {
+        return socketId < id;
+    });
+}
+
+void IdentServer::removeWaitingSocket(int64_t socketId) {
+    _waiting.remove(socketId);
+}
+
+void IdentServer::processWaiting(int64_t socketId) {
+    int64_t lowestSocketId = std::numeric_limits<int64_t >::max();
+    for (int64_t id : _waiting) {
+        if (id < lowestSocketId) {
+            lowestSocketId = id;
+        }
+    }
+    removeWaitingSocket(socketId);
+    _requestQueue.remove_if([=](Request request) {
+        if (request.transactionId < lowestSocketId) {
+            responseUnavailable(request);
+            return true;
+        } else if (request.transactionId > socketId) {
+            return responseAvailable(request);
+        } else {
+            return false;
+        }
+    });
+}
+
+bool operator==(const Request &a, const Request &b) {
+    return a.requestId == b.requestId;
 }
