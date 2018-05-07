@@ -44,6 +44,7 @@
 #include "sessionthread.h"
 #include "storage.h"
 #include "types.h"
+#include "identserver.h"
 
 class CoreAuthHandler;
 class CoreSession;
@@ -600,6 +601,7 @@ public:
     static inline QTimer &syncTimer() { return instance()->_storageSyncTimer; }
 
     inline OidentdConfigGenerator *oidentdConfigGenerator() const { return _oidentdConfigGenerator; }
+    inline IdentServer *identServer() const { return _identServer; }
 
     static const int AddClientEventId;
 
@@ -689,6 +691,8 @@ private:
     std::vector<DeferredSharedPtr<Authenticator>> _registeredAuthenticators;
 
     QDateTime _startTime;
+
+    IdentServer *_identServer {nullptr};
 
     bool _configured;
 

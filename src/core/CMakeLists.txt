@@ -31,6 +31,7 @@ set(SOURCES
     coreusersettings.cpp
     ctcpparser.cpp
     eventstringifier.cpp
+    identserver.cpp
     ircparser.cpp
     netsplit.cpp
     oidentdconfiggenerator.cpp
@@ -41,8 +42,7 @@ set(SOURCES
     storage.cpp
 
     # needed for automoc
-    coreeventmanager.h
-)
+    coreeventmanager.h)
 
 set(LIBS )
 
