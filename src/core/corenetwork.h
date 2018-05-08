@@ -389,8 +389,8 @@ signals:
     void sslErrors(const QVariant &errorData);
 
     void newEvent(Event *event);
-    void socketInitialized(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort, const QHostAddress &peerAddress, quint16 peerPort, int64_t socketId);
-    void socketDisconnected(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort, const QHostAddress &peerAddress, quint16 peerPort, int64_t socketId);
+    void socketInitialized(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort, const QHostAddress &peerAddress, quint16 peerPort, qint64 socketId);
+    void socketDisconnected(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort, const QHostAddress &peerAddress, quint16 peerPort, qint64 socketId);
 
 protected:
     inline virtual IrcChannel *ircChannelFactory(const QString &channelname) { return new CoreIrcChannel(channelname, this); }
@@ -453,7 +453,7 @@ private:
 #else
     QTcpSocket socket;
 #endif
-    int64_t _socketId;
+    qint64 _socketId;
 
     CoreUserInputHandler *_userInputHandler;
 
