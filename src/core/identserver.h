@@ -9,8 +9,8 @@ struct Request {
     QTcpSocket *socket;
     uint16_t localPort;
     QString query;
-    int64_t transactionId;
-    int64_t requestId;
+    qint64 transactionId;
+    qint64 requestId;
 
     friend bool operator==(const Request &a, const Request &b);
 };
@@ -23,10 +23,10 @@ public:
 
     bool startListening();
     void stopListening(const QString &msg);
-    int64_t addWaitingSocket();
+    qint64 addWaitingSocket();
 public slots:
-    bool addSocket(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort, const QHostAddress &peerAddress, quint16 peerPort, int64_t socketId);
-    bool removeSocket(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort, const QHostAddress &peerAddress, quint16 peerPort, int64_t socketId);
+    bool addSocket(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort, const QHostAddress &peerAddress, quint16 peerPort, qint64 socketId);
+    bool removeSocket(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort, const QHostAddress &peerAddress, quint16 peerPort, qint64 socketId);
 
 private slots:
     void incomingConnection();
@@ -37,11 +37,11 @@ private:
 
     QString sysIdentForIdentity(const CoreIdentity *identity) const;
 
-    bool hasSocketsBelowId(int64_t socketId);
+    bool hasSocketsBelowId(qint64 socketId);
 
-    void processWaiting(int64_t socketId);
+    void processWaiting(qint64 socketId);
 
-    void removeWaitingSocket(int64_t socketId);
+    void removeWaitingSocket(qint64 socketId);
 
     QTcpServer _server, _v6server;
 
@@ -49,7 +49,7 @@ private:
 
     QHash<uint16_t, QString> _connections;
     std::list<Request> _requestQueue;
-    std::list<int64_t> _waiting;
-    int64_t _socketId;
-    int64_t _requestId;
+    std::list<qint64> _waiting;
+    qint64 _socketId;
+    qint64 _requestId;
 };

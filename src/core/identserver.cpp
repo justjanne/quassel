@@ -74,7 +74,7 @@ void IdentServer::respond() {
     QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
     Q_ASSERT(socket);
 
-    int64_t transactionId = _socketId;
+    qint64 transactionId = _socketId;
 
     if (socket->canReadLine()) {
         QByteArray query = socket->readLine();
@@ -154,7 +154,7 @@ QString IdentServer::sysIdentForIdentity(const CoreIdentity *identity) const {
 
 
 bool IdentServer::addSocket(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort,
-                            const QHostAddress &peerAddress, quint16 peerPort, int64_t socketId) {
+                            const QHostAddress &peerAddress, quint16 peerPort, qint64 socketId) {
     Q_UNUSED(localAddress)
     Q_UNUSED(peerAddress)
     Q_UNUSED(peerPort)
@@ -167,7 +167,7 @@ bool IdentServer::addSocket(const CoreIdentity *identity, const QHostAddress &lo
 
 
 bool IdentServer::removeSocket(const CoreIdentity *identity, const QHostAddress &localAddress, quint16 localPort,
-                               const QHostAddress &peerAddress, quint16 peerPort, int64_t socketId) {
+                               const QHostAddress &peerAddress, quint16 peerPort, qint64 socketId) {
     Q_UNUSED(identity)
     Q_UNUSED(localAddress)
     Q_UNUSED(peerAddress)
@@ -178,25 +178,25 @@ bool IdentServer::removeSocket(const CoreIdentity *identity, const QHostAddress 
     return true;
 }
 
-int64_t IdentServer::addWaitingSocket() {
-    int64_t newSocketId = _socketId++;
+qint64 IdentServer::addWaitingSocket() {
+    qint64 newSocketId = _socketId++;
     _waiting.push_back(newSocketId);
     return newSocketId;
 }
 
-bool IdentServer::hasSocketsBelowId(int64_t id) {
-    return std::any_of(_waiting.begin(), _waiting.end(), [=](int64_t socketId) {
+bool IdentServer::hasSocketsBelowId(qint64 id) {
+    return std::any_of(_waiting.begin(), _waiting.end(), [=](qint64 socketId) {
         return socketId < id;
     });
 }
 
-void IdentServer::removeWaitingSocket(int64_t socketId) {
+void IdentServer::removeWaitingSocket(qint64 socketId) {
     _waiting.remove(socketId);
 }
 
-void IdentServer::processWaiting(int64_t socketId) {
-    int64_t lowestSocketId = std::numeric_limits<int64_t >::max();
-    for (int64_t id : _waiting) {
+void IdentServer::processWaiting(qint64 socketId) {
+    qint64 lowestSocketId = std::numeric_limits<qint64 >::max();
+    for (qint64 id : _waiting) {
         if (id < lowestSocketId) {
             lowestSocketId = id;
         }
