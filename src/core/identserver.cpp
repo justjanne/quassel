@@ -4,7 +4,7 @@
 #include "corenetwork.h"
 #include "identserver.h"
 
-IdentServer::IdentServer(bool strict, QObject *parent) : QObject(parent), _strict(strict) {
+IdentServer::IdentServer(bool strict, QObject *parent) : QObject(parent), _strict(strict), _socketId(0), _requestId(0) {
     connect(&_server, SIGNAL(newConnection()), this, SLOT(incomingConnection()));
     connect(&_v6server, SIGNAL(newConnection()), this, SLOT(incomingConnection()));
 }
@@ -87,22 +87,15 @@ void IdentServer::respond() {
 
         bool success = false;
 
-        uint16_t localPort;
+        quint16 localPort;
         if (!split.empty()) {
-            localPort = split[0].toUShort(&success, 10);
-        }
-
-        QString user;
-        if (success) {
-            if (_connections.contains(localPort)) {
-                user = _connections[localPort];
-            } else {
-                success = false;
-            }
+            localPort = split[0].trimmed().toUShort(&success, 10);
         }
 
         Request request{socket, localPort, query, transactionId, _requestId++};
-        if (!responseAvailable(request)) {
+        if (!success) {
+            responseUnavailable(request);
+        } else if (!responseAvailable(request)) {
             if (hasSocketsBelowId(transactionId)) {
                 _requestQueue.emplace_back(request);
             } else {
