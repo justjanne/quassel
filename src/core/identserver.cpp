@@ -182,7 +182,7 @@ qint64 IdentServer::addWaitingSocket() {
 
 bool IdentServer::hasSocketsBelowId(qint64 id) {
     return std::any_of(_waiting.begin(), _waiting.end(), [=](qint64 socketId) {
-        return socketId < id;
+        return socketId <= id;
     });
 }
 

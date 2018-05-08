@@ -186,6 +186,10 @@ QByteArray CoreNetwork::userEncode(const QString &userNick, const QString &strin
 
 void CoreNetwork::connectToIrc(bool reconnecting)
 {
+    if (Core::instance()->identServer()) {
+        _socketId = Core::instance()->identServer()->addWaitingSocket();
+    }
+
     if (!reconnecting && useAutoReconnect() && _autoReconnectCount == 0) {
         _autoReconnectTimer.setInterval(autoReconnectInterval() * 1000);
         if (unlimitedReconnectRetries())
@@ -233,8 +237,6 @@ void CoreNetwork::connectToIrc(bool reconnecting)
     Server server = usedServer();
     displayStatusMsg(tr("Connecting to %1:%2...").arg(server.host).arg(server.port));
     displayMsg(Message::Server, BufferInfo::StatusBuffer, "", tr("Connecting to %1:%2...").arg(server.host).arg(server.port));
-
-    _socketId = Core::instance()->identServer()->addWaitingSocket();
 
     if (server.useProxy) {
         QNetworkProxy proxy((QNetworkProxy::ProxyType)server.proxyType, server.proxyHost, server.proxyPort, server.proxyUser, server.proxyPass);
