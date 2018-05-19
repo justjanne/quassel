@@ -13,6 +13,9 @@ struct Request {
     qint64 requestId;
 
     friend bool operator==(const Request &a, const Request &b);
+
+    void respondSuccess(const QString &user);
+    void respondError(const QString &error);
 };
 
 class IdentServer : public QObject {
@@ -33,7 +36,6 @@ private slots:
     void respond();
 private:
     bool responseAvailable(Request request);
-    void responseUnavailable(Request request);
 
     QString sysIdentForIdentity(const CoreIdentity *identity) const;
 

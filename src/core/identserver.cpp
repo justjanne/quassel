@@ -97,14 +97,30 @@ void IdentServer::respond() {
 
     Request request{socket, localPort, query, transactionId, _requestId++};
     if (!success) {
-        responseUnavailable(request);
+        request.respondError("NO-USER");
     } else if (responseAvailable(request)) {
         // success
     } else if (lowestSocketId() < transactionId) {
         _requestQueue.emplace_back(request);
     } else {
-        responseUnavailable(request);
+        request.respondError("NO-USER");
     }
+}
+
+void Request::respondSuccess(const QString &user) {
+    QString data = query + " : USERID : Quassel : " + user + "\r\n";
+
+    socket->write(data.toUtf8());
+    socket->flush();
+    socket->close();
+}
+
+void Request::respondError(const QString &error) {
+    QString data = query + " : ERROR : " + error + "\r\n";
+
+    socket->write(data.toUtf8());
+    socket->flush();
+    socket->close();
 }
 
 bool IdentServer::responseAvailable(Request request) {
@@ -113,21 +129,8 @@ bool IdentServer::responseAvailable(Request request) {
     }
 
     QString user = _connections[request.localPort];
-    QString data = request.query + " : USERID : Quassel : " + user + "\r\n";
-
-    request.socket->write(data.toUtf8());
-    request.socket->flush();
-    request.socket->close();
-
+    request.respondSuccess(user);
     return true;
-}
-
-void IdentServer::responseUnavailable(Request request) {
-    QString data = request.query + " : ERROR : NO-USER\r\n";
-
-    request.socket->write(data.toUtf8());
-    request.socket->flush();
-    request.socket->close();
 }
 
 QString IdentServer::sysIdentForIdentity(const CoreIdentity *identity) const {
@@ -190,7 +193,7 @@ void IdentServer::processWaiting(qint64 socketId) {
         } else if (lowestSocketId() < request.transactionId) {
             return false;
         } else {
-            responseUnavailable(request);
+            request.respondError("NO-USER");
             return true;
         }
     });
